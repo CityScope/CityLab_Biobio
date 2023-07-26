@@ -348,7 +348,7 @@ species people skills: [moving]{
 				
 				} 
 				else {
-					possible_bds <- building where (each.category = act_real);
+					possible_bds <- building where (act_real in each.category);
 					if(length(possible_bds) = 0 or rnd(100)>90){
 						possible_bds <- possible_bds + external;
 					}
