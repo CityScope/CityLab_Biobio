@@ -13,17 +13,27 @@ global {
 	bool updatePollution <-false parameter: "Pollution:" category: "Simulation";
 	bool updateDensity <-false parameter: "Density:" category: "Simulation";
 	bool weatherImpact <-true parameter: "Weather impact:" category: "Simulation";
-		
+	
+	//ADJUSTMENT PARAMETERS
+    float price <-0.0 parameter: "Price:" category: "Adjustment" min:-1.0 max:1.0;
+	float time_ad <-0.0 parameter: "Time:" category: "Adjustment" min:-1.0 max:1.0;
+	float social_pattern <- 0.0 parameter: "Social:" category: "Adjustment" min:-1.0 max:1.0;
+	float difficulty <- 0.0 parameter: "Difficulty:" category: "Adjustment" min:-1.0 max:1.0;	
+	float proba_car <- 0.0 parameter: "Proba car:" category: "Adjustment" min:0.0 max:1.0;
+	float proba_bike <- 0.0 parameter: "Proba bike:" category: "Adjustment" min:0.0 max:1.0;	
+	
 	//ENVIRONMENT
 	float step <- 1 #mn;
 	date starting_date <-date([2023,7,11,6,0]);
-	string case_study <- "costanera" ;
+	string case_study <- "costanera";
 	int nb_people <- 1000;
 	
     string cityGISFolder <- "./../includes/City/"+case_study;
 	file<geometry> buildings_shapefile <- file<geometry>(cityGISFolder+"/Buildings.shp");
 	file<geometry> external_cities_shapefile <- file<geometry>(cityGISFolder+"/Cities.shp");
 	
+	// Use this roads shp to ease parameter adjustment
+	// file<geometry> roads_shapefile <- file<geometry>(cityGISFolder+"/Roads_adjust.shp");
 	file<geometry> roads_shapefile <- file<geometry>(cityGISFolder+"/Roads.shp");
 	geometry shape <- envelope(roads_shapefile);
 	
@@ -54,9 +64,30 @@ global {
 	
 	// INDICATOR
 	map<string,int> transport_type_cumulative_usage <- map(mobility_list collect (each::0));
+	map<string,int> transport_type_cumulative_usage_high_school <- map(mobility_list collect (each::0));	
+	map<string,map<string,int>> transport_type_cumulative_usage_per_profile <- map([]);
+	map<string,int> transport_type_cumulative_usage_college <- map(mobility_list collect (each::0));
+	map<string,int> transport_type_cumulative_usage_young_prof <- map(mobility_list collect (each::0));
+	
 	map<string,int> transport_type_usage <- map(mobility_list collect (each::0));
 	map<string,float> transport_type_distance <- map(mobility_list collect (each::0.0)) + ["bus_people"::0.0];
 	map<string, int> buildings_distribution <- map(color_per_category.keys collect (each::0));
+	
+	// UTIL
+	list<string> cats <- [];
+	
+	// G.A. parameters:
+	// fitness represents the value of the fitness function
+	// set adjusting to true if the experiment will adjust parameters 
+	float fitness <- 0.0;
+	bool adjusting <- false;
+	string adjusting_profile <- "Mid-career workers";
+	
+	// the sum of the objectives must be 1
+	float objetive_walking <- 0.109;
+	float objective_car <- 0.536;
+	float objective_bus <- 0.342;
+	float objective_bike <- 0.013;	
 	
 	float weather_of_day min: 0.0 max: 1.0;	
 
@@ -92,12 +123,14 @@ global {
 			do create_trip_objectives;
 		}	
 		save "cycle,walking,bike,car,bus,average_speed,walk_distance,bike_distance,car_distance,bus_distance, bus_people_distance" to: "../results/mobility.csv";
-		
+		save "cycle,walking,bike,car,bus,average_speed,walk_distance,bike_distance,car_distance,bus_distance, bus_people_distance" to: "../results/mobility_aggregated.csv";
 		
 	}
 	
     reflex save_simu_attribute when: (cycle mod 100 = 0){
     	save [cycle,transport_type_usage.values[0] ,transport_type_usage.values[1], transport_type_usage.values[2], transport_type_usage.values[3], mean (people collect (each.speed)), transport_type_distance.values[0],transport_type_distance.values[1],transport_type_distance.values[2],transport_type_distance.values[3],transport_type_distance.values[4]] rewrite:false to: "../results/mobility.csv" format:"csv";
+    	save [cycle,transport_type_cumulative_usage_high_school.values[0] ,transport_type_cumulative_usage_high_school.values[1], transport_type_cumulative_usage_high_school.values[2], transport_type_cumulative_usage_high_school.values[3], mean (people collect (each.speed)), transport_type_distance.values[0],transport_type_distance.values[1],transport_type_distance.values[2],transport_type_distance.values[3],transport_type_distance.values[4]] rewrite:false to: "../results/mobility_aggregated.csv" format:"csv";
+	    
 	    // Reset value
 	    transport_type_usage <- map(mobility_list collect (each::0));
 	    transport_type_distance <- map(mobility_list collect (each::0.0)) + ["bus_people"::0.0];
@@ -106,6 +139,70 @@ global {
 	    }
 	}
 	
+	// This reflex updates the weights when adjusting parameters
+    reflex update_weights when: (cycle = 0){
+
+    	if(adjusting){
+
+			map<string, list<float>> m_temp <- map([]);
+			loop cat over: cats {
+				add [price, time_ad, social_pattern, difficulty] at: cat to: m_temp;
+			}
+			add m_temp at: adjusting_profile to: weights_map;
+			
+			proba_car_per_type[adjusting_profile] <- proba_car;
+			proba_bike_per_type[adjusting_profile] <- proba_bike;
+		}
+    }
+
+	// This reflex updates the fitness when adjusting parameters
+    reflex update_fitness when: (cycle mod 1419 = 0){
+    	
+    	if(adjusting and cycle != 0){
+	    	write(transport_type_cumulative_usage_per_profile);
+	    	int current_walking <- transport_type_cumulative_usage_per_profile[adjusting_profile]["walking"];
+	    	int current_bike <- transport_type_cumulative_usage_per_profile[adjusting_profile]["bike"];
+	    	int current_car <- transport_type_cumulative_usage_per_profile[adjusting_profile]["car"];
+	    	int current_bus <- transport_type_cumulative_usage_per_profile[adjusting_profile]["bus"];
+	    	
+	    	int sum <- current_walking + current_bike + current_car + current_bus;
+	    	float total_difference <- 99999999.0;
+	    	if(sum != 0){
+	    			float walking_difference <-  (100*objetive_walking) ^ 2;
+	    			if(current_walking != 0){
+	    				walking_difference <-  (100*objetive_walking - 100*(current_walking / sum)) ^ 2;
+	    			} 
+	    			
+		    		float bike_difference <-  (100*objective_bike) ^ 2;
+	    			if(current_bike != 0){
+		    			bike_difference <-  (100*objective_bike - 100*(current_bike / sum)) ^ 2;
+	    			} 
+		    		float car_difference <-  (100*objective_car)^2;
+	    			if(current_car != 0){
+		    			car_difference <-  (100*objective_car - 100*(current_car / sum))^2;
+	    			} 
+		    		float bus_difference <-  (100*objective_bus)^2;
+	    			if(current_bus != 0){
+		    			bus_difference <-  (100*objective_bus - 100*(current_bus / sum))^2;
+	    			} 
+	    		
+	    		// Debug outputs			    	
+		    	//write("objetive walking: " + objetive_walking);
+		    	//write("current_walking: " + current_walking / sum);
+		    	//write("objective_bike: " + objective_bike);
+		    	//write("current_bike: " + current_bike / sum);
+		    	//write("objective_bus: " + objective_bus);
+		    	//write("current_bus: " + current_bus / sum);
+		    	//write("objective_car: " + objective_car);
+		    	//write("current_car: " + current_car / sum);
+		    	
+		    	total_difference <- sqrt(walking_difference + bike_difference + car_difference + bus_difference);
+	    	}
+	    	fitness <- 5*(total_difference);
+	    	write("fitness: " + fitness);
+    	}
+    	
+    }
 	
 	action import_weather_data {
 		matrix weather_matrix <- matrix(weather_coeff);
@@ -121,6 +218,9 @@ global {
 				proba_car_per_type[profil_type] <- float(profile_matrix[2,i]);
 				proba_bike_per_type[profil_type] <- float(profile_matrix[3,i]);
 				proportion_per_type[profil_type] <- float(profile_matrix[4,i]);
+				
+				// Init map
+				transport_type_cumulative_usage_per_profile[profil_type] <- map(mobility_list collect (each::0));	
 			}
 		}
 	}
@@ -166,11 +266,15 @@ global {
 					string cat_name <-  criteria_matrix[index-nbTO,lignCategory];
 					loop cat over: cat_name split_with "|" {
 						add l2 at: cat to: m_temp;
+						if(not (cats contains cat)) {
+							add cat to: cats;
+						}
 					}
 				}
 				add m_temp at: people_type to: weights_map;
 			}
 		}
+		
 	}
 	
 	action characteristic_file_import {
@@ -312,7 +416,7 @@ grid gridHeatmaps height: 50 width: 50 {
 species people skills: [moving]{
 	string type;
 	rgb color ;
-	float size<-5#m;	
+	float size<-10#m;	
 	building living_place;
 	list<trip_objective> objectives;
 	trip_objective my_current_objective;
@@ -374,7 +478,7 @@ species people skills: [moving]{
 	action choose_mobility_mode {
 		list<list> cands <- mobility_mode_eval();
 		map<string,list<float>> crits <-  weights_map[type];
-		list<float> vals ;
+		list<float> vals;
 		loop obj over:crits.keys {
 			if (obj = my_current_objective.name) or
 			 ((my_current_objective.name in ["RS", "RM", "RL"]) and (obj = "R"))or
@@ -394,6 +498,12 @@ species people skills: [moving]{
 			mobility_mode <- one_of(possible_mobility_modes);
 		}
 		transport_type_cumulative_usage[mobility_mode] <- transport_type_cumulative_usage[mobility_mode] + 1;
+		
+		if (type = 'High School Student') {
+			transport_type_cumulative_usage_high_school[mobility_mode] <- transport_type_cumulative_usage_high_school[mobility_mode] + 1;
+		}
+		
+		transport_type_cumulative_usage_per_profile[type][mobility_mode] <- transport_type_cumulative_usage_per_profile[type][mobility_mode] + 1;
 		transport_type_usage[mobility_mode] <-transport_type_usage[mobility_mode]+1;
 		speed <- speed_per_mobility[mobility_mode];
 	}
@@ -576,7 +686,7 @@ species externalCities parent:building{
 	list<building> external_buildings;
 	
 	aspect base{
-		draw circle(150) color:rgb(95,190,190) at:entry_location;
+		draw circle(0) color:rgb(95,190,190) at:entry_location;
 	}
 }
 
@@ -591,7 +701,7 @@ experiment gameit type: gui {
 			species externalCities aspect:base;
 								
 			graphics "time" {
-				draw string(current_date.hour) + "h" + string(current_date.minute) +"m" color: # white font: font("Helvetica", 25, #italic) at: {world.shape.width*0.9,world.shape.height*0.55};
+				draw string(current_date.hour) + "h" + string(current_date.minute) +"m" color: # white font: font("Helvetica", 30, #italic) at: {world.shape.width*0.4,-world.shape.height*0.0};
 			}
 			
 			overlay position: { 5, 5 } size: { 240 #px, 680 #px } background: # black transparency: 1.0 border: #black 
@@ -643,4 +753,71 @@ experiment gameit type: gui {
 			}
 		} 				
 	}
+}
+
+
+experiment paramater_adjustment_genetic_algorithm type: batch repeat: 4 until: ( cycle = 4260 ) {
+    
+   // parameter 'Price:' var: price min: -1.0 max: 0.0 type: float step: 0.01;
+   // parameter 'Time:' var: time_ad min: -1.0 max: 0.0 type: float step: 0.01;
+   // parameter 'Social:' var: social_pattern min: 0.0 max: 1.0 type: float step: 0.01;
+   // parameter 'Difficulty:' var: difficulty min: -1.0 max: 0.0 type: float step: 0.01;
+   // parameter 'Proba car:' var: proba_car min: 0.1 max: 0.9 type: float step: 0.02;
+   // parameter 'Proba bike:' var: proba_bike min: 0.1 max: 0.5 type: float step: 0.02;
+    parameter 'Price:' var: price min: -0.35 max: -0.15 type: float step: 0.01;
+    parameter 'Time:' var: time_ad min: -0.66 max: -0.46 type: float step: 0.01;
+    parameter 'Social:' var: social_pattern min: 0.01 max: 0.24 type: float step: 0.01;
+    parameter 'Difficulty:' var: difficulty min: -0.8 max: -0.6 type: float step: 0.01;
+    parameter 'Proba car:' var: proba_car min: 0.04 max: 0.26 type: float step: 0.01;
+    parameter 'Proba bike:' var: proba_bike min: 0.0 max: 0.2 type: float step: 0.01;
+   
+    reflex out{
+    	write("fitness: " + fitness);
+    	write(weights_map);
+    	write(proba_bike_per_type);
+    	save [price,time_ad ,social_pattern, difficulty, proba_car, proba_bike, fitness] rewrite:false to: "../results/adjustment.csv" format:"csv";
+    	
+    }    
+    method genetic minimize: fitness 
+        pop_dim: 6 crossover_prob: 0.7 mutation_prob: 0.2 
+        nb_prelim_gen: 5 max_gen: 10; 
+}
+
+experiment parameter_exploration type: batch repeat: 4 until:( cycle = 4260 ) {
+
+	parameter 'Price:' var: price min: -1.0 max: 0.0 type: float step: 0.01;
+    parameter 'Time:' var: time_ad min: -1.0 max: 0.0 type: float step: 0.01;
+    parameter 'Social:' var: social_pattern min: 0.0 max: 1.0 type: float step: 0.01;
+    parameter 'Difficulty:' var: difficulty min: -1.0 max: 0.0 type: float step: 0.01;
+    parameter 'Proba car:' var: proba_car min: 0.1 max: 0.9 type: float step: 0.02;
+    parameter 'Proba bike:' var: proba_bike min: 0.1 max: 0.5 type: float step: 0.02;
+	
+	reflex out{
+		
+		save [price,time_ad ,social_pattern, difficulty, proba_car, proba_bike, fitness] rewrite:false to: "../results/exploration.csv" format:"csv";
+		
+	}
+
+    method exploration sample:100 sampling: 'uniform';
+
+}
+
+
+experiment paramater_adjustment_simmulated_anneling type: batch repeat: 2 keep_seed: true until: ( cycle = 1420 ) {
+    
+    parameter 'Price:' var: price min: -1.0 max: 0.0 type: float step: 0.01;
+    parameter 'Time:' var: time_ad min: -1.0 max: 0.0 type: float step: 0.01;
+    parameter 'Social:' var: social_pattern min: 0.0 max: 1.0 type: float step: 0.01;
+    parameter 'Difficulty:' var: difficulty min: -1.0 max: 0.0 type: float step: 0.01;
+    parameter 'Proba car:' var: proba_car min: 0.0 max: 1.0 type: float step: 0.01;
+    parameter 'Proba bike:' var: proba_bike min: 0.0 max: 1.0 type: float step: 0.01;
+    
+    reflex out{
+    	write("fitness: " + fitness);
+    	write(weights_map);
+    }    
+    method annealing 
+        temp_init: 100  temp_end: 1 
+        temp_decrease: 0.5 nb_iter_cst_temp: 5 
+        minimize: fitness;
 }
