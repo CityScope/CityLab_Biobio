@@ -1,0 +1,11 @@
+main_categories = {
+  "Cuidados": ['clinic','dentist','hospital','pharmacy','doctors'],
+  "Educacion": ['college','library','kindergarten','school','university'],
+  "Aprovisionamiento": ['butcher','greengrocer','vending_machine','supermarket'],
+  "Entretenimiento": ['attraction','artwork','arts_centre','bar','cinema','chalet','community_centre','park','nightclub','museum','monument','playground','pub','ruins','viewpoint','travel_agent','theatre','theme_park'],
+  "Transporte publico": [],
+  "Comercio": ['bakery','bicycle_shop','beverages','beauty_shop','bookshop','car_dealership','clothes','computer_shop','doityourself','department_store','florist','gift_shop','furniture_shop','kiosk','jeweller','mobile_phone_shop','market_place','mall','sports_shop','shoe_shop','vending_any','stationery'],
+  "Servicios": ['bank','atm','camera_surveillance','car_wash','drinking_water','fire_station','laundry','hotel','veterinary','hostel','hairdresser','guesthouse','optician','motel','post_office','police','recycling','sports_centre','toilet','tourist_info','telephone'],
+  "Comida para servir": ['cafe','food_court','fast_food','restaurant'],
+  "Otros": ['pitch','recycling_glass','wayside_cross','bench','chemist','comms_tower','courthouse','convenience','general','fountain','memorial','prison','water_tower','waste_basket','tower','embassy'],
+}
