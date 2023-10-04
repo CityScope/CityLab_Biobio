@@ -6,7 +6,7 @@ set "ruta_contenedor1=/app/data"
 set "nombre_imagen=urban_indicators"
 set "nombre_contenedor=ui_clbb"
 
-docker run -d -p 8888:8888 ^
+docker run -d -p 9090:9090 ^
   -v "%ruta_host1%:%ruta_contenedor1%" ^
   -e JUPYTER_TOKEN="" ^
   --name "%nombre_contenedor%" ^

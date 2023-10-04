@@ -22,8 +22,8 @@ RUN apt-get update && apt-get install -y \
 # Copia el código fuente al directorio de trabajo
 COPY . .
 
-# Expone el puerto 8888
-EXPOSE 8888
+# Expone el puerto 9090
+EXPOSE 9090
 
 # Configura Jupyter Notebook como el comando por defecto para ejecutar la aplicación
-CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root", "--NotebookApp.token=..."]
+CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=9090", "--no-browser", "--allow-root", "--NotebookApp.token=..."]
