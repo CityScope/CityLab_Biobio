@@ -1,14 +1,8 @@
-import osmnx as ox
-import networkx as nx
 import geopandas as gpd
 import pandas as pd
-import pandana as pdn
 import numpy as np
 import matplotlib.pyplot as plt
-import contextily as ctx
 import warnings
-import os
-import json
 
 warnings.filterwarnings("ignore")
 
