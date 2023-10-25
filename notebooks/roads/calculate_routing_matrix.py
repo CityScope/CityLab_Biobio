@@ -77,6 +77,10 @@ def main():
     total_nodes = len(node_ids)
     dict_lenghts = {}
 
+    batch_size = 1000
+    num_batches = total_nodes // batch_size
+    batch = 1
+
     for n in range(total_nodes):
         actual_node = node_ids[n]
 
@@ -86,9 +90,17 @@ def main():
 
         dict_lenghts[actual_node] = {node: length for node, length in zip(nodes_destination, lengths)}
 
+        if n%batch_size==0:
+            routing_matrix = pd.DataFrame.from_dict(dict_lenghts)
+            routing_matrix = routing_matrix.transpose()
+            routing_matrix.to_pickle(f'/app/data/output/routing_matrix_batch_{batch}.pkl')
+            batch += 1
+            del dict_lenghts, routing_matrix
+    
     routing_matrix = pd.DataFrame.from_dict(dict_lenghts)
     routing_matrix = routing_matrix.transpose()
-    routing_matrix.to_pickle('/app/data/output/routing_matrix.pkl')
+    routing_matrix.to_pickle(f'/app/data/output/routing_matrix_batch_{batch}.pkl')
+    pass
 
 if __name__=='__main__':
     main()
