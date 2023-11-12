@@ -35,7 +35,7 @@ global {
 	// Use this roads shp to ease parameter adjustment
 	// file<geometry> roads_shapefile <- file<geometry>(cityGISFolder+"/Roads_adjust.shp");
 	file<geometry> roads_shapefile <- file<geometry>(cityGISFolder+"/Roads.shp");
-	geometry shape <- envelope(roads_shapefile);
+	geometry shape <- envelope(buildings_shapefile);
 	
 	// MOBILITY DATA
 	list<string> mobility_list <- ["walking", "bike","car","bus"];
