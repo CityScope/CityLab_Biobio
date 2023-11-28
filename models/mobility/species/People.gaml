@@ -19,6 +19,9 @@ species people skills: [moving]{
 	bus_stop closest_bus_stop;	
 	int bus_status <- 0;
 	
+	int liveness_max <- 6*60*step; // 6 hours until a "stuck" agent gets "unstuck"
+	int liveness <- liveness_max;
+	
 	action create_trip_objectives {
 		map<string,int> activities <- activity_data[type];
 		//if (activities = nil ) or (empty(activities)) {write "my type: " + type;}
@@ -141,9 +144,7 @@ species people skills: [moving]{
 		}
 	}
 	
-	
-	
-	reflex choose_objective when: my_current_objective = nil {
+	reflex choose_objective when: (my_current_objective = nil) and (liveness != 0) {
 	    //location <- any_location_in(current_place);
 		do wander speed:0.01;
 		my_current_objective <- objectives first_with ((each.starting_hour = current_date.hour) and (current_date.minute >= each.starting_minute) and (current_place != each.place) );
@@ -156,6 +157,15 @@ species people skills: [moving]{
 			do choose_mobility_mode;
 		}
 	}
+	
+	reflex liveness when: (my_current_objective != nil) and (mobility_mode != nil) {
+		liveness <- liveness - 1;
+		if (liveness = 0) {
+			my_current_objective <- nil;
+			mobility_mode <- nil;
+		}
+	}
+	
 	reflex move when: (my_current_objective != nil) and (mobility_mode != "bus") {
 		transport_type_distance[mobility_mode] <- transport_type_distance[mobility_mode] + speed/step;
 		if ((current_edge != nil) and (mobility_mode in ["car"])) {road(current_edge).current_concentration <- max([0,road(current_edge).current_concentration - 1]); }
@@ -171,6 +181,7 @@ species people skills: [moving]{
 			location <- any_location_in(current_place);
 			my_current_objective <- nil;	
 			mobility_mode <- nil;
+			liveness <- liveness_max;
 		} else {
 			if ((current_edge != nil) and (mobility_mode in ["car"])) {road(current_edge).current_concentration <- road(current_edge).current_concentration + 1; }
 		}
@@ -197,6 +208,7 @@ species people skills: [moving]{
 				my_current_objective <- nil;	
 				mobility_mode <- nil;
 				bus_status <- 0;
+				liveness <- liveness_max;
 			}
 		}
 	}	
@@ -219,6 +231,7 @@ species people skills: [moving]{
 	aspect base{
 	  draw circle(size) at: location + {0,0,(current_place != nil ?current_place.height : 0.0) + 4}  color: color ;
 	}
+
 	aspect layer {
 		if(cycle mod 180 = 0){
 			draw sphere(size) at: {location.x,location.y,cycle*2} color: color ;
@@ -234,7 +247,7 @@ species trip_objective{
 
 species bus_stop {
 	list<people> waiting_people;
-	
+
 	aspect c {
 		draw circle(30) color: empty(waiting_people)?#black:#blue border: #black depth:1;
 	}
