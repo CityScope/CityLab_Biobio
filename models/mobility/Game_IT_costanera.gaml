@@ -62,7 +62,7 @@ global {
 	
 	float weather_of_day min: 0.0 max: 1.0;	
 
-	image_file costanera <- image_file("../includes/city/costanera/concepcion.jpg");
+	image_file costanera <- image_file("../../includes/city/costanera/concepcion.jpg");
 
 	float co2_capita <- 0.0;
 
