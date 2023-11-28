@@ -6,16 +6,24 @@ import "./Game_IT_costanera.gaml"
   	global{
   		
 	
-	    reflex save_simu_attribute when: (cycle mod 100 = 0){
-	    	save [cycle,transport_type_usage.values[0] ,transport_type_usage.values[1], transport_type_usage.values[2], transport_type_usage.values[3], mean (people collect (each.speed)), transport_type_distance.values[0],transport_type_distance.values[1],transport_type_distance.values[2],transport_type_distance.values[3],transport_type_distance.values[4]] rewrite:false to: "../results/mobility.csv" format:"csv";
-	    	save [cycle,transport_type_cumulative_usage_high_school.values[0] ,transport_type_cumulative_usage_high_school.values[1], transport_type_cumulative_usage_high_school.values[2], transport_type_cumulative_usage_high_school.values[3], mean (people collect (each.speed)), transport_type_distance.values[0],transport_type_distance.values[1],transport_type_distance.values[2],transport_type_distance.values[3],transport_type_distance.values[4]] rewrite:false to: "../results/mobility_aggregated.csv" format:"csv";
-		    
-		    // Reset value
-		    transport_type_usage <- map(mobility_list collect (each::0));
-		    transport_type_distance <- map(mobility_list collect (each::0.0)) + ["bus_people"::0.0];
-		    if(cycle = 5000){
-		    	do pause;
-		    }
+	    reflex save_simu_attribute when: (cycle mod 60 = 0){
+			float car_co2 <- 0.26; // kg/km (Car: 24,20 MPG = 9,72 L/100km = 26,05 kg/100km)
+			float bus_co2 <- 1.92; // kg/km (Transit bus: 3,26 MPG = 72,152 L/100km = 192,37 kg/100km)
+			co2_capita <- co2_capita + (transport_type_usage.values[2]*transport_type_distance.values[2]*car_co2 + transport_type_usage.values[3]*transport_type_distance.values[3]*bus_co2)/nb_people;
+			// float daylight_function <- sin((#pi/12) * (cycle) - 2.1*60) + 0.6;
+			save [cycle,transport_type_usage.values[0] ,transport_type_cumulative_usage.values[0],transport_type_usage.values[1],transport_type_cumulative_usage.values[1],transport_type_usage.values[2],transport_type_cumulative_usage.values[2],transport_type_usage.values[3],transport_type_cumulative_usage.values[3], mean (people collect (each.speed)), transport_type_distance.values[0],transport_type_distance.values[1],transport_type_distance.values[2],transport_type_distance.values[3],transport_type_distance.values[4],co2_capita] rewrite:false to: "../results/mobility.csv" format:"csv";
+			save [cycle,transport_type_cumulative_usage_high_school.values[0] ,transport_type_cumulative_usage_high_school.values[1], transport_type_cumulative_usage_high_school.values[2], transport_type_cumulative_usage_high_school.values[3], mean (people collect (each.speed)), transport_type_distance.values[0],transport_type_distance.values[1],transport_type_distance.values[2],transport_type_distance.values[3],transport_type_distance.values[4]] rewrite:false to: "../results/mobility_aggregated.csv" format:"csv";
+			
+			// Reset value
+			transport_type_usage <- map(mobility_list collect (each::0));
+			transport_type_distance <- map(mobility_list collect (each::0.0)) + ["bus_people"::0.0];
+			if (cycle mod (60*24) = 0) {
+				co2_capita <- 0.0;
+			}
+			
+			if(cycle = 60*24*7){ // show a full week
+				do pause;
+			}
 		}
 		
 		// This reflex updates the weights when adjusting parameters
