@@ -62,6 +62,10 @@ global {
 	
 	float weather_of_day min: 0.0 max: 1.0;	
 
+	image_file costanera <- image_file("../includes/city/costanera/concepcion.jpg");
+
+	float co2_capita <- 0.0;
+
 	init {
 		gama.pref_display_flat_charts <- true;
 		do import_shapefiles;	
@@ -93,9 +97,10 @@ global {
 			closest_bus_stop <- bus_stop with_min_of(each distance_to(self));						
 			do create_trip_objectives;
 		}	
-		save "cycle,walking,bike,car,bus,average_speed,walk_distance,bike_distance,car_distance,bus_distance, bus_people_distance" to: "../results/mobility.csv";
-		save "cycle,walking,bike,car,bus,average_speed,walk_distance,bike_distance,car_distance,bus_distance, bus_people_distance" to: "../results/mobility_aggregated.csv";
-		
+		save "cycle,walking,walking_acum,bike,bike_acum,car,car_acum,bus,bus_acum,average_speed,walk_distance,bike_distance,car_distance,bus_distance, bus_people_distance,CO2_capita,daylight" to: "../results/mobility.csv";
+		save "cycle,walking,bike,car,bus,average_speed,walk_distance,bike_distance,car_distance,bus_distance, bus_people_distance" to: "../results/mobility_aggregated.csv";		
+
+		write costanera.path;
 	}
 	
 }
