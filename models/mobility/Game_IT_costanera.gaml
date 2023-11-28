@@ -97,8 +97,8 @@ global {
 			closest_bus_stop <- bus_stop with_min_of(each distance_to(self));						
 			do create_trip_objectives;
 		}	
-		save "cycle,walking,walking_acum,bike,bike_acum,car,car_acum,bus,bus_acum,average_speed,walk_distance,bike_distance,car_distance,bus_distance, bus_people_distance,CO2_capita,daylight" to: "../results/mobility.csv";
-		save "cycle,walking,bike,car,bus,average_speed,walk_distance,bike_distance,car_distance,bus_distance, bus_people_distance" to: "../results/mobility_aggregated.csv";		
+		save "cycle,walking,walking_acum,bike,bike_acum,car,car_acum,bus,bus_acum,average_speed,walk_distance,bike_distance,car_distance,bus_distance, bus_people_distance,CO2_capita,daylight" to: "../../results/mobility.csv";
+		save "cycle,walking,bike,car,bus,average_speed,walk_distance,bike_distance,car_distance,bus_distance, bus_people_distance" to: "../../results/mobility_aggregated.csv";		
 
 		write costanera.path;
 	}
@@ -218,7 +218,7 @@ experiment paramater_adjustment_genetic_algorithm type: batch repeat: 4 until: (
     	write("fitness: " + fitness);
     	write(weights_map);
     	write(proba_bike_per_type);
-    	save [price,time_ad ,social_pattern, difficulty, proba_car, proba_bike, fitness] rewrite:false to: "../results/adjustment.csv" format:"csv";
+    	save [price,time_ad ,social_pattern, difficulty, proba_car, proba_bike, fitness] rewrite:false to: "../../results/adjustment.csv" format:"csv";
     	
     }    
     method genetic minimize: fitness 
@@ -237,7 +237,7 @@ experiment parameter_exploration type: batch repeat: 4 until:( cycle = 4260 ) {
 	
 	reflex out{
 		
-		save [price,time_ad ,social_pattern, difficulty, proba_car, proba_bike, fitness] rewrite:false to: "../results/exploration.csv" format:"csv";
+		save [price,time_ad ,social_pattern, difficulty, proba_car, proba_bike, fitness] rewrite:false to: "../../results/exploration.csv" format:"csv";
 		
 	}
 
