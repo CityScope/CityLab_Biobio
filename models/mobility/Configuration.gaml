@@ -16,7 +16,7 @@ global {
 	
 	//ENVIRONMENT
 	float step <- 1 #mn;
-	date starting_date <-date([2023,7,11,6,0]);
+	date starting_date <-date([2023,7,11,0,0]);
 	string case_study <- "costanera";
 	int nb_people <- 1000;
 	
