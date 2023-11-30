@@ -16,7 +16,7 @@ global {
 	
 	//ENVIRONMENT
 	float step <- 1 #mn;
-	date starting_date <-date([2023,7,11,6,0]);
+	date starting_date <-date([2023,7,11,0,0]);
 	string case_study <- "costanera";
 	int nb_people <- 1000;
 	
@@ -27,7 +27,7 @@ global {
 	// Use this roads shp to ease parameter adjustment
 	// file<geometry> roads_shapefile <- file<geometry>(cityGISFolder+"/Roads_adjust.shp");
 	file<geometry> roads_shapefile <- file<geometry>(cityGISFolder+"/Roads.shp");
-	geometry shape <- envelope(buildings_shapefile);
+	geometry shape <- envelope(roads_shapefile);
 		
 	// MOBILITY DATA
 	list<string> mobility_list <- ["walking", "bike","car","bus"];

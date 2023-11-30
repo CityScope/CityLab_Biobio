@@ -62,6 +62,10 @@ global {
 	
 	float weather_of_day min: 0.0 max: 1.0;	
 
+	image_file costanera <- image_file("../../includes/city/costanera/concepcion.jpg");
+
+	float co2_capita <- 0.0;
+
 	init {
 		gama.pref_display_flat_charts <- true;
 		do import_shapefiles;	
@@ -93,9 +97,10 @@ global {
 			closest_bus_stop <- bus_stop with_min_of(each distance_to(self));						
 			do create_trip_objectives;
 		}	
-		save "cycle,walking,bike,car,bus,average_speed,walk_distance,bike_distance,car_distance,bus_distance, bus_people_distance" to: "../results/mobility.csv";
-		save "cycle,walking,bike,car,bus,average_speed,walk_distance,bike_distance,car_distance,bus_distance, bus_people_distance" to: "../results/mobility_aggregated.csv";
-		
+		save "cycle,walking,walking_acum,bike,bike_acum,car,car_acum,bus,bus_acum,average_speed,walk_distance,bike_distance,car_distance,bus_distance, bus_people_distance,CO2_capita" to: "../../results/mobility.csv";
+		save "cycle,walking,bike,car,bus,average_speed,walk_distance,bike_distance,car_distance,bus_distance, bus_people_distance" to: "../../results/mobility_aggregated.csv";		
+
+		write costanera.path;
 	}
 	
 }
@@ -121,18 +126,25 @@ grid gridHeatmaps height: 50 width: 50 {
 }
 
 
-experiment gameit type: gui {
+experiment gameit type: gui autorun:true {
 	output {
-		display map type: opengl draw_env: false background: #black refresh:every(10#cycle){
+		display map type: opengl draw_env: false background: #black fullscreen:true refresh:true {
+			camera 'default' location: {7096.5034,7000.8943,2589.6569} target: {7156.8845,6970.1287,0.0};
+			image costanera position: {3900,3600, 0} size: {0.6,0.6};
+			
+			graphics "black_filter" background:#black position: {3900,3600, 0.001} transparency: (sin((#pi/12) * (cycle) - 2.1*60) + 0.6<0.2)?0.2:sin((#pi/12) * (cycle) - 2.1*60) + 0.6 {
+				
+			}
+			
 			//species gridHeatmaps aspect:pollution;
 			//species pie;
-			species building aspect:depth refresh: false;
+			species building aspect:depth refresh: false; // colors important buildings
 			species road ;		
 			species people aspect:base ;
 			species externalCities aspect:base;
 								
 			graphics "time" {
-				draw string(current_date.hour) + "h" + string(current_date.minute) +"m" color: # white font: font("Helvetica", 30, #italic) at: {world.shape.width*0.4,-world.shape.height*0.0};
+				draw string(current_date.hour) + "h" + string(current_date.minute) +"m" color: # white font: font("Helvetica", 10, #italic) at: {world.shape.width*0.65,world.shape.height*0.9}; // 0.4 , 0 
 			}
 			
 			overlay position: { 5, 5 } size: { 240 #px, 680 #px } background: # black transparency: 1.0 border: #black 
@@ -182,7 +194,7 @@ experiment gameit type: gui {
 				  data proportion_per_type.keys[i] value: proportion_per_type.values[i] color:color_per_type[proportion_per_type.keys[i]];
 				}
 			}
-		} 				
+		}
 	}
 }
 
@@ -206,7 +218,7 @@ experiment paramater_adjustment_genetic_algorithm type: batch repeat: 4 until: (
     	write("fitness: " + fitness);
     	write(weights_map);
     	write(proba_bike_per_type);
-    	save [price,time_ad ,social_pattern, difficulty, proba_car, proba_bike, fitness] rewrite:false to: "../results/adjustment.csv" format:"csv";
+    	save [price,time_ad ,social_pattern, difficulty, proba_car, proba_bike, fitness] rewrite:false to: "../../results/adjustment.csv" format:"csv";
     	
     }    
     method genetic minimize: fitness 
@@ -225,7 +237,7 @@ experiment parameter_exploration type: batch repeat: 4 until:( cycle = 4260 ) {
 	
 	reflex out{
 		
-		save [price,time_ad ,social_pattern, difficulty, proba_car, proba_bike, fitness] rewrite:false to: "../results/exploration.csv" format:"csv";
+		save [price,time_ad ,social_pattern, difficulty, proba_car, proba_bike, fitness] rewrite:false to: "../../results/exploration.csv" format:"csv";
 		
 	}
 
