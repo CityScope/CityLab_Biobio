@@ -125,8 +125,72 @@ grid gridHeatmaps height: 50 width: 50 {
 	}
 }
 
+experiment gameit type: gui {
+	output {
+		display map type: opengl draw_env: false background: #black refresh:every(10#cycle){
+			//species gridHeatmaps aspect:pollution;
+			//species pie;
+			species building aspect:depth refresh: false;
+			species road ;		
+			species people aspect:base ;
+			species externalCities aspect:base;
+								
+			graphics "time" {
+				draw string(current_date.hour) + "h" + string(current_date.minute) +"m" color: # white font: font("Helvetica", 30, #italic) at: {world.shape.width*0.4,-world.shape.height*0.0};
+			}
+			
+			overlay position: { 5, 5 } size: { 240 #px, 680 #px } background: # black transparency: 1.0 border: #black 
+            {
+            	
+                rgb text_color<-#white;
+                float y <- 30#px;
+  				draw "Building Usage" at: { 40#px, y } color: text_color font: font("Helvetica", 25, #bold) perspective:false;
+                y <- y + 30 #px;
+                loop type over: color_per_category.keys
+                {
+                    draw square(20#px) at: { 20#px, y } color: color_per_category[type] border: #white;
+                    draw type at: { 40#px, y + 4#px } color: text_color font: font("Helvetica", 25, #plain) perspective:false;
+                    y <- y + 25#px;
+                }
+                 y <- y + 30 #px;     
+                draw "People Type" at: { 40#px, y } color: text_color font: font("Helvetica", 25, #bold) perspective:false;
+                y <- y + 30 #px;
+                loop type over: color_per_type.keys
+                {
+                    draw square(10#px) at: { 20#px, y } color: color_per_type[type] border: #white;
+                    draw type at: { 40#px, y + 4#px } color: text_color font: font("Helvetica", 25, #plain) perspective:false;
+                    y <- y + 25#px;
+                }
+				y <- y + 30 #px;
+                draw "Mobility Mode" at: { 40#px, 600#px } color: text_color font: font("Roboto", 25, #bold) perspective:false;
+                map<string,rgb> list_of_existing_mobility <- map<string,rgb>(["Walking"::#green,"Bike"::#yellow,"Car"::#red,"Bus"::#blue]);
+                y <- y + 30 #px;
+                
+                loop i from: 0 to: length(list_of_existing_mobility) -1 {    
+                  // draw circle(10#px) at: { 20#px, 600#px + (i+1)*25#px } color: list_of_existing_mobility.values[i]  border: #white;
+                   draw list_of_existing_mobility.keys[i] at: { 40#px, 610#px + (i+1)*20#px } color: list_of_existing_mobility.values[i] font: font("Helvetica", 18, #plain) perspective:false; 			
+		        }     
+            }
+            
+            chart "Cumulative Trip"background:#black  type: pie size: {0.6,0.6} position: {world.shape.width*1.1,world.shape.height*0 - 300} color: #white axes: #yellow title_font: 'Menlo' title_font_size: 30.0 
+			tick_font: 'Menlo' tick_font_size: 20 tick_font_style: 'bold' label_font: 'Menlo' label_font_size: 64 label_font_style: 'bold' x_label: 'Nice Xlabel' y_label:'Nice Ylabel'
+			{
+				loop i from: 0 to: length(transport_type_cumulative_usage.keys)-1	{
+				  data transport_type_cumulative_usage.keys[i] value: transport_type_cumulative_usage.values[i] color:color_per_mobility[transport_type_cumulative_usage.keys[i]];
+				}
+			}
+			chart "People Distribution" background:#black  type: pie size: {0.6,0.6} position: {world.shape.width*1.1,world.shape.height*0.6} color: #white axes: #yellow title_font: 'Menlo' title_font_size: 30.0 
+			tick_font: 'Menlo' tick_font_size: 20 tick_font_style: 'bold' label_font: 'Menlo' label_font_size: 64 label_font_style: 'bold' x_label: 'Nice Xlabel' y_label:'Nice Ylabel'
+			{
+				loop i from: 0 to: length(proportion_per_type.keys)-1	{
+				  data proportion_per_type.keys[i] value: proportion_per_type.values[i] color:color_per_type[proportion_per_type.keys[i]];
+				}
+			}
+		} 				
+	}
+}
 
-experiment gameit type: gui autorun:true {
+experiment gameit_with_backdrop type: gui autorun:true {
 	output {
 		display map type: opengl draw_env: false background: #black fullscreen:true refresh:true {
 			camera 'default' location: {7096.5034,7000.8943,2589.6569} target: {7156.8845,6970.1287,0.0};
