@@ -21,6 +21,7 @@ global {
 	int nb_people <- 1000;
 	
     string cityGISFolder <- "./../../includes/city/"+case_study;
+    //file<geometry> buildings_shapefile <- file<geometry>(cityGISFolder+"/FutureBuildings.shp");
 	file<geometry> buildings_shapefile <- file<geometry>(cityGISFolder+"/Buildings.shp");
 	file<geometry> external_cities_shapefile <- file<geometry>(cityGISFolder+"/Cities.shp");
 	
